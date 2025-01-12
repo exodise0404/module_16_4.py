@@ -16,33 +16,28 @@ async def get_users() -> List[User]:
     return users
 
 @app.post('/user/{username}/{age}')
-async def post_user(user: User,
-                    username: Annotated[str, Path(min_length=5, max_length=20, description='Enter username')],
-                    age: float = Path(ge=18, le=120, description='Enter age')) -> str:
-    user.id = len(users) + 1
-    user.username = username
-    user.age = age
+async def post_user(username: Annotated[str, Path(min_length=5, max_length=20, description='Enter username')],
+                    age: Annotated[int, Path(ge=18, le=120, description='Enter age')]) -> User:
+    user_id = str(len(users) + 1)
+    user = User(id=user_id, username=username, age=age)
     users.append(user)
-    return f"User {user.id} is registered"
-
-
+    return user
 @app.put('/user/{user_id}/{username}/{age}')
-async def update_user(user_id: Annotated[int, Path()],
+async def update_user(user_id: Annotated[int, Path(ge=1, le=100, description='Enter User ID')],
                       username: Annotated[str, Path(min_length=5, max_length=20, description='Enter username')],
-                      age: float = Path(ge=18, le=120, description='Enter age')) -> str:
-    try:
-        edit_user = users[user_id - 1]
-        edit_user.username = username
-        edit_user.age = age
-        return f"The User {user_id} is updated"
-    except IndexError:
-        raise HTTPException(status_code=404, detail='User was not found')
+                      age: Annotated[int, Path(ge=18, le=120, description='Enter age')]) -> User:
+    for user in users:
+        if user.id == user_id:
+            user.username = username
+            user.age = age
+            return user
+    raise HTTPException(status_code=404, detail='User was not found')
 
 
 @app.delete('/user/{user_id}')
-async def delete_user(user_id: Annotated[int, Path()]) -> str:
-    try:
-        users.pop(user_id - 1)
-        return f'User ID {user_id} deleted!'
-    except IndexError:
-        raise HTTPException(status_code=404, detail='User was not found')
+async def delete_user (user_id: Annotated[int, Path(ge=1, le=100, description='Enter User ID', example='1')]):
+    for user in users:
+        if user.id == user_id:
+            users.remove(user)
+            return user
+    raise HTTPException(status_code=404, detail='User was not found')
